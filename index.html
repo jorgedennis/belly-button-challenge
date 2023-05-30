@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bellybutton Biodiversity</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+</head>
+<body>
+  <div class="container">
+    <div class="jumbotron text-center">
+      <h1>Belly Button Biodiversity Dashboard</h1>
+      <p>Use the interactive charts below to explore the dataset</p>
+    </div>
+    <div class="row">
+      <div class="col-md-2">
+        <div class="well">
+          <h5>Test Subject ID No.:</h5>
+          <select id="selDataset" onchange="optionChanged(this.value)"></select>
+        </div>
+        <div class="panel panel-primary">
+          <div class="panel-heading">
+            <h3 class="panel-title">Demographic Info</h3>
+          </div>
+          <div id="sample-metadata" class="panel-body"></div>
+        </div>
+      </div>
+      <div class="col-md-5">
+        <div id="bar"></div>
+      </div>
+      <div class="col-md-5">
+        <div id="bubble"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script>
+    // load json
+    d3.json("https://2u-data-curriculum-team.s3.amazonaws.com/dataviz-classroom/v1.1/14-Interactive-Web-Visualizations/02-Homework/samples.json").then(function(data) {
+      // create cariables to extract json data
+      var samples = data.samples;
+      var metadata = data.metadata;
+      var dropdown = d3.select("#selDataset");
+
+      // dropdown menu names 
+      var ids = samples.map(sample => sample.id);
+      ids.forEach(function(id) {
+        dropdown.append("option").text(id).property("value", id);
+      });
+
+      function optionChanged(selectedId) {
+        var selectedSample = samples.find(sample => sample.id === selectedId);
+        var selectedMetadata = metadata.find(meta => meta.id === parseInt(selectedId));
+        var demographicInfo = d3.select("#sample-metadata");
+        demographicInfo.html("");
+
+        Object.entries(selectedMetadata).forEach(([key, value]) => {
+          demographicInfo.append("p").text(`${key}: ${value}`);
+        });
+
+        var top10SampleValues = selectedSample.sample_values.slice(0, 10).reverse();
+        var top10OtuIds = selectedSample.otu_ids.slice(0, 10).map(id => `OTU ${id}`).reverse();
+        var top10OtuLabels = selectedSample.otu_labels.slice(0, 10).reverse();
+
+        var traceBar = {
+          x: top10SampleValues,
+          y: top10OtuIds,
+          text: top10OtuLabels,
+          type: "bar",
+          orientation: "h"
+        };
+
+        var layoutBar = {
+          title: "Top 10 OTUs",
+          xaxis: { title: "Sample Values" },
+          yaxis: { title: "OTU IDs" }
+        };
+
+        Plotly.newPlot("bar", [traceBar], layoutBar);
+
+        var traceBubble = {
+          x: selectedSample.otu_ids,
+          y: selectedSample.sample_values,
+          text: selectedSample.otu_labels,
+          mode: "markers",
+          marker: {
+            size: selectedSample.sample_values,
+            color: selectedSample.otu_ids,
+            colorscale: "Earth"
+          }
+        };
+
+        var layoutBubble = {
+          xaxis: { title: "OTU ID" }
+        };
+
+        Plotly.newPlot("bubble", [traceBubble], layoutBubble);
+      }
+
+      optionChanged(ids[0]);
+    });
+  </script>
+</body>
+</html>
